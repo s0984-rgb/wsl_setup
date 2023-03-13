@@ -16,15 +16,12 @@ fi
 # update everything
 sudo apt update && sudo apt upgrade -y && sudo apt dist-upgrade -y && sudo apt autoclean -y 
 
+#################
+#### Docker #####
+#################
+
 # Install docker-ce from repo
-sudo apt install -y \
-    ca-certificates \
-    curl \
-    gnupg \
-    lsb-release \
-    net-tools \
-    socat \
-    git
+sudo apt install -y ca-certificates curl gnupg lsb-release net-tools socat git python3-dev libffi-dev gcc libssl-dev
 
 # Add Docker GPG key
 if [ ! -d /etc/apt/keyrings ]; then
@@ -48,12 +45,7 @@ fi
 
 # Install Docker engine
 sudo apt-get update
-sudo apt-get install -y \
-    docker-ce \
-    docker-ce-cli \
-    containerd.io \
-    docker-buildx-plugin \
-    docker-compose-plugin
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
 # Add user to docker group
 grep ${USER} /etc/group | grep docker > /dev/null
