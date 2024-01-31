@@ -1,6 +1,7 @@
 #!/bin/bash
 
 CUR_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )" # Returns full path of the directory of the script 'build'.
+SSH_AUTH_SOCK=${HOME}/.ssh/agent.sock
 source ${CUR_DIR}/commons.sh
 
 # Run as user that you need to config WSL for
@@ -14,7 +15,7 @@ else
 fi
 
 # update everything
-sudo apt update && sudo apt upgrade -y && sudo apt dist-upgrade -y && sudo apt autoclean -y 
+sudo apt update && sudo apt upgrade -y && sudo apt dist-upgrade -y && sudo apt autoclean -y
 
 #################
 #### Docker #####
@@ -44,8 +45,7 @@ else
 fi
 
 # Install Docker engine
-sudo apt-get update
-sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo apt-get update && sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
 # Add user to docker group
 grep ${USER} /etc/group | grep docker > /dev/null
@@ -72,7 +72,7 @@ fi
 # Docker on start-up
 grep 'sudo /usr/sbin/service docker start > /dev/null' ${HOME}/.profile > /dev/null
 if [ $? -ne 0 ]; then
-    printf << EOF >> ${HOME}/.profile
+    cat << EOF >> ${HOME}/.profile
 if ! sudo /usr/sbin/service docker status > /dev/null; then
     sudo /usr/sbin/service docker start > /dev/null
 fi
@@ -84,12 +84,11 @@ fi
 # Ensure SSH on startup
 grep "check-ssh-agent" ${HOME}/.profile > /dev/null
 if [ $? -ne 0 ]; then
-    printf << EOF >> ${HOME}/.profile
+    cat << EOF >> ${HOME}/.profile
 check-ssh-agent() {
-    [ -S "$SSH_AUTH_SOCK" ] && { ssh-add -l >& /dev/null || [ $? -ne 2 ]; }
+    [ -S "${SSH_AUTH_SOCK}" ] && { ssh-add -l >& /dev/null || [ $? -ne 2 ]; }
 }
-check-ssh-agent || export SSH_AUTH_SOCK=~/.ssh/agent.sock
-check-ssh-agent || { rm -f $SSH_AUTH_SOCK; eval "$(ssh-agent -s -a $SSH_AUTH_SOCK)" > /dev/null; }
+check-ssh-agent || { rm -f ${SSH_AUTH_SOCK}; eval \`ssh-agent -s -a ${SSH_AUTH_SOCK}\` > /dev/null; }
 EOF
 else
     logInfo "SSH agent configured"
@@ -98,7 +97,7 @@ fi
 # Custom Bash prompt and commands
 grep "parse_git_branch()" ${HOME}/.bashrc > /dev/null
 if [ $? -ne 0 ]; then
-    printf << EOF >> ${HOME}/.bashrc
+    cat << EOF >> ${HOME}/.bashrc
 # some more ls aliases
 alias lsa='ls -alFh'
 alias cls='clear'
@@ -153,21 +152,6 @@ if [ $? -ne 0 ]; then
 else
     logInfo "GPG agent startup configured"
 fi
-
-#################
-#### Kubectl ####
-#################
-if [ ! -f /etc/apt/keyrings/kubernetes-archive-keyring.gpg ]; then
-    sudo curl -fsSLo /etc/apt/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
-fi
-
-grep 'deb [signed-by=/etc/apt/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main' /etc/apt/sources.list.d/kubernetes.list > /dev/null
-if [ $? -ne 0 ]; then
-    echo "deb [signed-by=/etc/apt/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
-fi
-
-sudo apt update
-sudo apt install -y --allow-downgrades kubectl=1.21.8-00
 
 # Kubectx + Kubens
 if [ ! -d ${HOME}/kubectx ]; then
