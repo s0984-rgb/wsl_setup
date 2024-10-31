@@ -85,10 +85,11 @@ fi
 grep "check-ssh-agent" ${HOME}/.profile > /dev/null
 if [ $? -ne 0 ]; then
     cat << EOF >> ${HOME}/.profile
-check-ssh-agent() {
-    [ -S "${SSH_AUTH_SOCK}" ] && { ssh-add -l >& /dev/null || [ $? -ne 2 ]; }
-}
-check-ssh-agent || { rm -f ${SSH_AUTH_SOCK}; eval \`ssh-agent -s -a ${SSH_AUTH_SOCK}\` > /dev/null; }
+check_ssh_agent=$(pidof ssh-agent)
+if [[ -z $check_ssh_agent ]]; then
+        rm -rf ${SSH_AUTH_SOCK};
+        eval `ssh-agent -s -a ${SSH_AUTH_SOCK}` > /dev/null;
+fi
 EOF
 else
     logInfo "SSH agent configured"
